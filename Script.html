@@ -1,0 +1,1936 @@
+<script>
+  // State management
+  let currentUser = null;
+
+  // Initialize App
+  document.addEventListener("DOMContentLoaded", () => {
+    // Simulasi loading screen singkat
+    setTimeout(() => {
+        checkSession();
+        startClock();
+        startMenuSlider();
+    }, 800);
+  });
+
+  function startClock() {
+    function updateClock() {
+        const now = new Date();
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        
+        const dayName = days[now.getDay()];
+        const date = now.getDate();
+        const monthName = months[now.getMonth()];
+        const year = now.getFullYear();
+        
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        const dateStr = `${dayName}, ${date} ${monthName} ${year}`;
+        const timeStr = `${hours}:${minutes}:${seconds}`;
+        
+        const clockDateEl = document.getElementById('clock-date');
+        const clockTimeEl = document.getElementById('clock-time');
+        
+        if (clockDateEl) clockDateEl.innerText = dateStr;
+        if (clockTimeEl) clockTimeEl.innerText = timeStr;
+    }
+    
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  function startMenuSlider() {
+      let currentSlide = 1;
+      const totalSlides = 5;
+      
+      setInterval(() => {
+          // Only cycle if we're on the Menu page
+          const menuPage = document.getElementById('page-menu');
+          if (menuPage && !menuPage.classList.contains('hidden')) {
+              const prevSlide = document.getElementById('gizi-slide-' + currentSlide);
+              if (prevSlide) {
+                  prevSlide.classList.remove('opacity-100', 'z-10');
+                  prevSlide.classList.add('opacity-0', 'z-0');
+              }
+              
+              currentSlide = (currentSlide % totalSlides) + 1;
+              
+              const nextSlide = document.getElementById('gizi-slide-' + currentSlide);
+              if (nextSlide) {
+                  nextSlide.classList.remove('opacity-0', 'z-0');
+                  nextSlide.classList.add('opacity-100', 'z-10');
+              }
+          }
+      }, 30000); // 30 seconds
+  }
+
+  function checkSession() {
+    const sessionData = localStorage.getItem('sppg_session');
+    
+    // Hide loading
+    const loadingEl = document.getElementById('loading');
+    loadingEl.classList.add('fade-out');
+    
+    setTimeout(() => {
+        loadingEl.classList.add('hidden');
+        loadingEl.classList.remove('fade-out');
+        
+        if (sessionData) {
+            try {
+                currentUser = JSON.parse(sessionData);
+                showMainApp();
+            } catch(e) {
+                localStorage.removeItem('sppg_session');
+                showLogin();
+            }
+        } else {
+            showLogin();
+        }
+    }, 300);
+  }
+
+  function showLogin() {
+    document.getElementById('login-section').classList.remove('hidden');
+    document.getElementById('main-section').classList.add('hidden');
+  }
+
+  function showMainApp() {
+    document.getElementById('login-section').classList.add('hidden');
+    const mainSection = document.getElementById('main-section');
+    mainSection.classList.remove('hidden');
+    mainSection.classList.add('fade-in');
+    
+    if (currentUser) {
+      const userNameTop = document.getElementById('user-name');
+      if(userNameTop) userNameTop.innerText = currentUser.username;
+      
+      const roleDisplay = document.getElementById('user-role-display');
+      if(roleDisplay) roleDisplay.innerText = currentUser.role || 'User';
+      
+      const nameDisplay = document.getElementById('user-name-display');
+      if(nameDisplay) nameDisplay.innerText = currentUser.username;
+      
+      const avatarDisplay = document.getElementById('user-avatar');
+      if(avatarDisplay) avatarDisplay.innerText = currentUser.username.charAt(0).toUpperCase();
+    }
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-login');
+    const form = document.getElementById('loginForm');
+    const errorDiv = document.getElementById('login-error');
+    const errorText = document.getElementById('login-error-text');
+    
+    const username = form.username.value;
+    const password = form.password.value;
+
+    if(!username || !password) return;
+
+    // Set loading state
+    const originalBtnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<div class="flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Memproses...
+                     </div>`;
+    errorDiv.classList.add('hidden');
+
+    // Call Google Apps Script backend
+    if(typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler(function(response) {
+            btn.disabled = false;
+            btn.innerHTML = `Sign In Dashboard`;
+            
+            if (response.success) {
+              localStorage.setItem('sppg_session', JSON.stringify(response.user));
+              currentUser = response.user;
+              
+              showToast('Login berhasil!', 'success');
+              
+              // Transition
+              document.getElementById('login-section').classList.add('fade-out');
+              setTimeout(() => {
+                  document.getElementById('login-section').classList.remove('fade-out');
+                  showMainApp();
+              }, 300);
+              
+            } else {
+              errorText.innerText = response.message;
+              errorDiv.classList.remove('hidden');
+              errorDiv.classList.add('fade-in');
+            }
+          })
+          .withFailureHandler(function(error) {
+            btn.disabled = false;
+            btn.innerHTML = `Sign In Dashboard`;
+            errorText.innerText = "Terjadi kesalahan koneksi ke server.";
+            errorDiv.classList.remove('hidden');
+            errorDiv.classList.add('fade-in');
+          })
+          .verifyLogin(username, password);
+    } else {
+        // For local development UI testing
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = `Sign In Dashboard`;
+            if(username === 'admin' && password === '1234') {
+                const dummyUser = {id: 'U001', username: 'admin', role: 'Admin'};
+                localStorage.setItem('sppg_session', JSON.stringify(dummyUser));
+                currentUser = dummyUser;
+                showMainApp();
+                showToast('Login berhasil!', 'success');
+            } else {
+                errorText.innerText = "Login Gagal. Pastikan Anda menjalankan ini di Google Apps Script.";
+                errorDiv.classList.remove('hidden');
+            }
+        }, 1000);
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('sppg_session');
+    currentUser = null;
+    
+    document.getElementById('main-section').classList.add('fade-out');
+    
+    setTimeout(() => {
+        document.getElementById('main-section').classList.remove('fade-out');
+        showLogin();
+        document.getElementById('loginForm').reset();
+    }, 300);
+  }
+
+  function initDB() {
+    if(confirm('Anda yakin ingin menginisialisasi ulang database? Pastikan ini pertama kali setup.')) {
+        showToast('Memulai inisialisasi database...', 'info');
+        
+        if(typeof google !== 'undefined') {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                showToast(res, 'success');
+              })
+              .withFailureHandler(function(err) {
+                showToast("Gagal: " + err.message, 'error');
+              })
+              .initializeDatabase();
+        } else {
+            showToast('Fungsi ini hanya berjalan di lingkungan Google Apps Script.', 'error');
+        }
+    }
+  }
+
+  // Toast Notification System
+  function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if(!container) return;
+      
+      const toast = document.createElement('div');
+      
+      // Determine color
+      let baseClass = 'bg-white border text-gray-800';
+      let icon = '';
+      
+      if (type === 'success') {
+          baseClass = 'bg-green-50 border-green-200 text-green-800';
+          icon = `<svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+      } else if (type === 'error') {
+          baseClass = 'bg-red-50 border-red-200 text-red-800';
+          icon = `<svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+      } else {
+          baseClass = 'bg-blue-50 border-blue-200 text-blue-800';
+          icon = `<svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      }
+      
+      toast.className = `flexitems-center p-4 rounded-lg shadow-md border fade-in-up ${baseClass}`;
+      toast.innerHTML = `<div class="flex items-center">${icon}<span class="text-sm font-medium">${message}</span></div>`;
+      
+      container.appendChild(toast);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+          toast.classList.remove('fade-in-up');
+          toast.classList.add('fade-out');
+          setTimeout(() => {
+              toast.remove();
+          }, 300);
+      }, 3000);
+  }
+
+  // ==== PAGE NAVIGATION ====
+  function loadPage(pageId, linkElement = null) {
+      // Sembunyikan semua halaman
+      const allPages = document.querySelectorAll('.page-content');
+      allPages.forEach(p => {
+          p.classList.add('hidden');
+          p.classList.remove('fade-in');
+      });
+      
+      // Tampilkan halaman aktif
+      const targetPage = document.getElementById('page-' + pageId);
+      if(targetPage) {
+          targetPage.classList.remove('hidden');
+          targetPage.classList.add('fade-in');
+      }
+
+      // Update active state sidebar desktop
+      if(linkElement) {
+          const allLinks = document.querySelectorAll('.sidebar-link');
+          allLinks.forEach(link => {
+              link.classList.remove('bg-blue-50', 'text-blue-700', 'active');
+              link.classList.add('text-gray-600', 'hover:bg-gray-100', 'hover:text-gray-900');
+              
+              // Reset icon color
+              const icon = link.querySelector('svg');
+              if(icon) {
+                 icon.classList.remove('text-blue-600');
+                 icon.classList.add('text-gray-400', 'group-hover:text-gray-600');
+              }
+          });
+          
+          linkElement.classList.remove('text-gray-600', 'hover:bg-gray-100', 'hover:text-gray-900');
+          linkElement.classList.add('bg-blue-50', 'text-blue-700', 'active');
+          const activeIcon = linkElement.querySelector('svg');
+          if(activeIcon) {
+             activeIcon.classList.remove('text-gray-400', 'group-hover:text-gray-600');
+             activeIcon.classList.add('text-blue-600');
+          }
+      }
+
+      // Fetch dashboard data if loading dashboard
+      if (pageId === 'dashboard') {
+          fetchDashboardStats();
+      }
+      
+      // Fetch options for Laporan if loading laporan
+      if (pageId === 'laporan') {
+          loadDataLaporan();
+      }
+
+      // Close sidebar mobile if open
+      if(window.innerWidth < 1024) { // Tailwind lg break point
+          const sidebar = document.getElementById('sidebar-container');
+          if(!sidebar.classList.contains('-translate-x-full')) {
+              toggleSidebar();
+          }
+      }
+  }
+
+  // Toggle Sidebar Mobile
+  function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar-container');
+      const overlay = document.getElementById('sidebar-overlay');
+      
+      sidebar.classList.toggle('-translate-x-full');
+      
+      if(sidebar.classList.contains('-translate-x-full')) {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('opacity-100');
+      } else {
+          overlay.classList.remove('hidden');
+          // small timeout for transition to trigger
+          setTimeout(() => {
+              overlay.classList.add('opacity-100');
+          }, 10);
+      }
+  }
+
+  // ==== DASHBOARD & CHARTS ====
+  let barChartInst = null;
+  let donutChartInst = null;
+
+  function fetchDashboardStats() {
+      document.getElementById('chart-bar-loading').classList.remove('hidden');
+      document.getElementById('chart-donut-loading').classList.remove('hidden');
+
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(function(data) {
+                updateDashboardUI(data);
+            })
+            .withFailureHandler(function(err) {
+                console.error("Gagal load stats", err);
+                document.getElementById('chart-bar-loading').classList.add('hidden');
+                document.getElementById('chart-donut-loading').classList.add('hidden');
+            })
+            .getDashboardStats();
+      } else {
+          // Dummy data local
+          setTimeout(() => {
+              updateDashboardUI({
+                  sekolah: 12,
+                  siswa: 2540,
+                  menu: 8,
+                  distribusiHariIni: 450,
+                  chartSekolah: { labels: ['SDN 1 Mutih', 'SDN 2 Mutih', 'MI Darussalam', 'TK Kartika'], data: [320, 250, 180, 50] },
+                  chartMenu: { labels: ['Ayam Tepung', 'Telor Dadar', 'Ikan Goreng', 'Nugget'], data: [45, 30, 15, 10] }
+              });
+          }, 1000);
+      }
+  }
+
+  function updateDashboardUI(data) {
+     // Animation numbers function
+     animateValue("stat-sekolah", 0, data.sekolah, 1000);
+     animateValue("stat-siswa", 0, data.siswa, 1500);
+     animateValue("stat-menu", 0, data.menu, 1000);
+     animateValue("stat-distribusi", 0, data.distribusiHariIni, 1200);
+
+     // Hide loaders
+     document.getElementById('chart-bar-loading').classList.add('hidden');
+     document.getElementById('chart-donut-loading').classList.add('hidden');
+
+     // Init charts
+     renderCharts(data.chartSekolah, data.chartMenu);
+  }
+
+  function animateValue(id, start, end, duration) {
+      if (start === end) {
+          document.getElementById(id).innerHTML = end;
+          return;
+      }
+      var range = end - start;
+      var current = start;
+      var increment = end > start? 1 : -1;
+      
+      // hitung steps agar tidak terlalu berat
+      var stepTime = Math.abs(Math.floor(duration / range));
+      if(stepTime < 20) stepTime = 20; 
+      increment = Math.ceil(range / (duration / stepTime));
+
+      var obj = document.getElementById(id);
+      var timer = setInterval(function() {
+          current += increment;
+          if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+              current = end;
+              clearInterval(timer);
+          }
+          // Format with separator
+          obj.innerHTML = current.toLocaleString('id-ID');
+      }, stepTime);
+  }
+
+  function renderCharts(sekolahData, menuData) {
+      // 1. Bar Chart Setup
+      const ctxBar = document.getElementById('barChart').getContext('2d');
+      if(barChartInst) barChartInst.destroy();
+
+      barChartInst = new Chart(ctxBar, {
+          type: 'bar',
+          data: {
+              labels: sekolahData.labels,
+              datasets: [{
+                  label: 'Jumlah Siswa',
+                  data: sekolahData.data,
+                  backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                  borderColor: 'rgba(37, 99, 235, 1)',
+                  borderWidth: 1,
+                  borderRadius: 6,
+                  barPercentage: 0.6
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                      callbacks: {
+                          label: function(context) {
+                              return context.parsed.y + ' Siswa';
+                          }
+                      }
+                  }
+              },
+              scales: {
+                  y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#f3f4f6' } },
+                  x: { grid: { display: false } }
+              }
+          }
+      });
+
+      // 2. Donut Chart Setup
+      const ctxDonut = document.getElementById('donutChart').getContext('2d');
+      if(donutChartInst) donutChartInst.destroy();
+
+      donutChartInst = new Chart(ctxDonut, {
+          type: 'doughnut',
+          data: {
+              labels: menuData.labels,
+              datasets: [{
+                  data: menuData.data,
+                  backgroundColor: [
+                      'rgba(59, 130, 246, 0.8)', // Blue
+                      'rgba(16, 185, 129, 0.8)', // Green
+                      'rgba(245, 158, 11, 0.8)', // Yellow
+                      'rgba(139, 92, 246, 0.8)', // Purple
+                      'rgba(239, 68, 68, 0.8)'   // Red
+                  ],
+                  borderWidth: 0,
+                  hoverOffset: 4
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '70%',
+              plugins: {
+                  legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+              }
+          }
+      });
+  }
+
+  // ==========================================
+  // GLOBALS & UTILS
+  // ==========================================
+  let dataSekolah = [];
+  let dataMenu = [];
+  let dataBahan = [];
+  
+  // Pagination State Sekolah
+  let sekolahCurrentPage = 1;
+  const sekolahItemsPerPage = 10;
+  let filteredSekolah = [];
+
+  function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+  }
+
+  function renderEmptyState(tableId, emptyId, hasData) {
+      if (hasData) {
+          document.getElementById(tableId).classList.remove('hidden');
+          document.getElementById(emptyId).classList.add('hidden');
+      } else {
+          document.getElementById(tableId).classList.add('hidden');
+          document.getElementById(emptyId).classList.remove('hidden');
+      }
+  }
+
+  // ==========================================
+  // CRUD SEKOLAH
+  // ==========================================
+  function loadDataSekolah() {
+      document.getElementById('loading-sekolah').classList.remove('hidden');
+      
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(function(res) {
+                if(res.status === 'success') {
+                    dataSekolah = res.data;
+                    filteredSekolah = [...dataSekolah];
+                    sekolahCurrentPage = 1;
+                    renderTableSekolah();
+                } else {
+                    showToast(res.message, 'error');
+                }
+                document.getElementById('loading-sekolah').classList.add('hidden');
+            })
+            .withFailureHandler(function(err) {
+                showToast("Gagal memuat data sekolah", "error");
+                document.getElementById('loading-sekolah').classList.add('hidden');
+            })
+            .getSekolah();
+      } else {
+          // Dummy data for testing
+          setTimeout(() => {
+              if (dataSekolah.length === 0) { // Only load dummy data if array is empty
+                  dataSekolah = [
+                      {id: 'SKL1', nama: 'SDN 1 Mutih Kulon', alamat: 'Jl. Rungkut Asri No 1', kategori: 'SD/MI', porsi: 'Besar', siswa: 200},
+                      {id: 'SKL2', nama: 'MI Darussalam', alamat: 'Jl. KH Ahmad Dahlan', kategori: 'SD/MI', porsi: 'Kecil', siswa: 80},
+                      {id: 'SKL3', nama: 'PAUD Melati', alamat: 'Desa Krajan', kategori: 'PAUD', porsi: 'Kecil', siswa: 45},
+                      {id: 'SKL4', nama: 'TK Pertiwi Mutih', alamat: 'Jl. Pemuda', kategori: 'TK', porsi: 'Kecil', siswa: 60},
+                      {id: 'SKL5', nama: 'SDN 2 Mutih Kulon', alamat: 'Jl. Kebangsaan', kategori: 'SD/MI', porsi: 'Besar', siswa: 150},
+                      {id: 'SKL6', nama: 'MI Matholiul Falah', alamat: 'Desa Margoyoso', kategori: 'SD/MI', porsi: 'Besar', siswa: 150},
+                      {id: 'SKL7', nama: 'TK Islam Bakti', alamat: 'Jl. Sunan Kalijaga', kategori: 'TK', porsi: 'Kecil', siswa: 55},
+                      {id: 'SKL8', nama: 'KB Lestari Baru', alamat: 'Jl. Pahlawan', kategori: 'PAUD', porsi: 'Kecil', siswa: 35}
+                  ];
+              }
+              filteredSekolah = [...dataSekolah];
+              sekolahCurrentPage = 1;
+              renderTableSekolah();
+              document.getElementById('loading-sekolah').classList.add('hidden');
+          }, 800);
+      }
+  }
+
+  function renderTableSekolah() {
+      const tbody = document.getElementById('tbody-sekolah');
+      tbody.innerHTML = '';
+      
+      if (filteredSekolah.length === 0) {
+          renderEmptyState('table-sekolah', 'empty-sekolah', false);
+          updatePaginationSekolah();
+          return;
+      }
+      
+      renderEmptyState('table-sekolah', 'empty-sekolah', true);
+
+      // Calc Pagination
+      const startIndex = (sekolahCurrentPage - 1) * sekolahItemsPerPage;
+      const endIndex = Math.min(startIndex + sekolahItemsPerPage, filteredSekolah.length);
+      const paginatedData = filteredSekolah.slice(startIndex, endIndex);
+
+      paginatedData.forEach((item, index) => {
+          const delayStyle = `style="animation-delay: ${index * 50}ms;"`;
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-blue-50/50 transition-colors fade-in-up opacity-0";
+          tr.setAttribute("style", `animation-delay: ${index * 30}ms;`);
+          
+          tr.innerHTML = `
+             <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                   <div class="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                       ${item.nama.charAt(0).toUpperCase()}
+                   </div>
+                   <div class="ml-4">
+                      <div class="text-sm font-bold text-gray-900">${item.nama}</div>
+                      <div class="text-xs text-gray-500">ID: ${item.id}</div>
+                   </div>
+                </div>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900 max-w-xs truncate" title="${item.alamat}">${item.alamat}</div>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                  ${item.kategori}
+                </span>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded text-gray-700 bg-gray-100 border border-gray-200">
+                  ${item.porsi || '-'}
+                </span>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                ${item.siswa} <span class="text-gray-400 text-xs font-normal">Porsi</span>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="editSekolah('${item.id}')" class="text-blue-600 hover:text-blue-900 mr-3 px-2 py-1 bg-blue-50 rounded-md transition-colors">Edit</button>
+                <button onclick="hapusSekolah('${item.id}')" class="text-red-600 hover:text-red-900 px-2 py-1 bg-red-50 rounded-md transition-colors">Hapus</button>
+             </td>
+          `;
+          tbody.appendChild(tr);
+      });
+      
+      updatePaginationSekolah();
+  }
+
+  function updatePaginationSekolah() {
+      const totalItems = filteredSekolah.length;
+      const totalPages = Math.ceil(totalItems / sekolahItemsPerPage);
+      
+      document.getElementById('sekolah-total-data').innerText = totalItems;
+      
+      if(totalItems === 0) {
+          document.getElementById('sekolah-page-start').innerText = 0;
+          document.getElementById('sekolah-page-end').innerText = 0;
+          document.getElementById('sekolah-pagination').innerHTML = '';
+          return;
+      }
+      
+      const startIdx = ((sekolahCurrentPage - 1) * sekolahItemsPerPage) + 1;
+      const endIdx = Math.min(sekolahCurrentPage * sekolahItemsPerPage, totalItems);
+      
+      document.getElementById('sekolah-page-start').innerText = startIdx;
+      document.getElementById('sekolah-page-end').innerText = endIdx;
+
+      let paginationHTML = '';
+      
+      // Prev Button
+      paginationHTML += `
+          <button onclick="changePageSekolah(${sekolahCurrentPage - 1})" ${sekolahCurrentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${sekolahCurrentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}">
+              <span class="sr-only">Previous</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+          </button>
+      `;
+      
+      // Page Numbers (simplified, max 5 shown)
+      let startPage = Math.max(1, sekolahCurrentPage - 2);
+      let endPage = Math.min(totalPages, startPage + 4);
+      if (endPage - startPage < 4) {
+          startPage = Math.max(1, endPage - 4);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+          const isCurrent = (i === sekolahCurrentPage);
+          const activeClass = isCurrent ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50';
+          paginationHTML += `
+              <button onclick="changePageSekolah(${i})" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium ${activeClass}">
+                 ${i}
+              </button>
+          `;
+      }
+      
+      // Next Button
+      paginationHTML += `
+          <button onclick="changePageSekolah(${sekolahCurrentPage + 1})" ${sekolahCurrentPage === totalPages ? 'disabled' : ''} class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${sekolahCurrentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
+              <span class="sr-only">Next</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+          </button>
+      `;
+      
+      document.getElementById('sekolah-pagination').innerHTML = paginationHTML;
+  }
+
+  function changePageSekolah(newPage) {
+      const totalPages = Math.ceil(filteredSekolah.length / sekolahItemsPerPage);
+      if(newPage >= 1 && newPage <= totalPages) {
+          sekolahCurrentPage = newPage;
+          renderTableSekolah();
+      }
+  }
+
+  function filterTable(tableId, query) {
+      const q = (query || '').toLowerCase();
+      if(tableId === 'table-sekolah') {
+          filteredSekolah = dataSekolah.filter(item => 
+              item.nama.toLowerCase().includes(q) || 
+              item.alamat.toLowerCase().includes(q)
+          );
+          // Re-apply select filters if any
+          const cat = document.getElementById('filterKategoriSekolah').value;
+          if(cat !== 'all') {
+             filteredSekolah = filteredSekolah.filter(item => item.kategori === cat);
+          }
+          const por = document.getElementById('filterPorsiSekolah') ? document.getElementById('filterPorsiSekolah').value : 'all';
+          if(por !== 'all') {
+             filteredSekolah = filteredSekolah.filter(item => item.porsi === por);
+          }
+          sekolahCurrentPage = 1;
+          renderTableSekolah();
+      } else if (tableId === 'table-menu') {
+          // Card format just needs to re-render, passing the query is handled inside renderTableMenu
+          renderTableMenu();
+      } else if (tableId === 'table-bahan') {
+          renderTableBahan();
+      } else if (tableId === 'table-karyawan') {
+          renderTableKaryawan();
+      }
+  }
+
+  function filterKategori(tableId) {
+      if(tableId === 'table-sekolah') {
+          const q = document.getElementById('searchSekolah').value.toLowerCase();
+          const kat = document.getElementById('filterKategoriSekolah').value;
+          const por = document.getElementById('filterPorsiSekolah') ? document.getElementById('filterPorsiSekolah').value : 'all';
+          
+          filteredSekolah = dataSekolah.filter(item => {
+             const matchSearch = item.nama.toLowerCase().includes(q) || item.alamat.toLowerCase().includes(q);
+             const matchCat = (kat === 'all') ? true : (item.kategori === kat);
+             const matchPor = (por === 'all') ? true : (item.porsi === por);
+             
+             return matchSearch && matchCat && matchPor;
+          });
+          sekolahCurrentPage = 1;
+          renderTableSekolah();
+      }
+  }
+
+  function openModalSekolah() {
+      document.getElementById('form-sekolah').reset();
+      document.getElementById('sekolah-id').value = '';
+      document.getElementById('sekolah-modal-title').innerText = 'Tambah Sekolah Baru';
+      document.getElementById('modal-sekolah').classList.remove('hidden');
+  }
+
+  function editSekolah(id) {
+      const item = dataSekolah.find(d => d.id === id);
+      if(!item) return;
+      
+      document.getElementById('sekolah-id').value = item.id;
+      document.getElementById('sekolah-nama').value = item.nama;
+      document.getElementById('sekolah-alamat').value = item.alamat;
+      document.getElementById('sekolah-kategori').value = item.kategori;
+      document.getElementById('sekolah-porsi').value = item.porsi || '';
+      document.getElementById('sekolah-siswa').value = item.siswa;
+      
+      document.getElementById('sekolah-modal-title').innerText = 'Edit Data Sekolah';
+      document.getElementById('modal-sekolah').classList.remove('hidden');
+  }
+
+  function saveSekolah(e) {
+      e.preventDefault();
+      const form = document.getElementById('form-sekolah');
+      const btn = document.getElementById('btn-save-sekolah');
+      originalText = btn.innerHTML;
+      btn.innerHTML = 'Menyimpan...';
+      btn.disabled = true;
+
+      const data = {
+          id: document.getElementById('sekolah-id').value,
+          nama: form.nama.value,
+          alamat: form.alamat.value,
+          kategori: form.kategori.value,
+          porsi: form.porsi.value,
+          siswa: form.siswa.value
+      };
+
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(function(res) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                if(res.status === 'success') {
+                    showToast(res.message, 'success');
+                    closeModal('modal-sekolah');
+                    loadDataSekolah(); // reload data
+                } else {
+                    showToast(res.message, 'error');
+                }
+            })
+            .saveSekolah(data, currentUser?.username);
+      } else {
+          setTimeout(()=>{
+             btn.innerHTML = originalText;
+             btn.disabled = false;
+             
+             if(data.id) {
+                 const idx = dataSekolah.findIndex(s => s.id === data.id);
+                 if(idx > -1) {
+                     // Update existing
+                     dataSekolah[idx] = { ...dataSekolah[idx], ...data };
+                 }
+             } else {
+                 // Add new
+                 data.id = 'S' + (dataSekolah.length + 1);
+                 dataSekolah.push(data);
+             }
+             
+             filterTable('table-sekolah', document.getElementById('searchSekolah').value || ''); // re-render
+             showToast("Tersimpan (Lokal)", "success");
+             closeModal('modal-sekolah');
+          }, 500);
+      }
+  }
+
+  function hapusSekolah(id) {
+      if(confirm('Yakin ingin menghapus data sekolah ini? Semua referensi distribusi terkait mungkin terdampak.')) {
+          showToast('Menghapus data...', 'info');
+          if(typeof google !== 'undefined') {
+              google.script.run
+                .withSuccessHandler(res => {
+                    if(res.status === 'success') { showToast(res.message, 'success'); loadDataSekolah(); }
+                    else showToast(res.message, 'error');
+                })
+                .deleteSekolah(id, currentUser?.username);
+          } else {
+              dataSekolah = dataSekolah.filter(s => s.id !== id);
+              filterTable('table-sekolah', document.getElementById('searchSekolah').value || '');
+              showToast('Data dihapus (Lokal)', 'success');
+          }
+      }
+  }
+
+  // ==========================================
+  // CRUD MENU MAKANAN
+  // ==========================================
+  
+  function getHariName(dateString) {
+      if(!dateString) return 'Senin';
+      const date = new Date(dateString);
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      return days[date.getDay()];
+  }
+  
+  function formatTanggalIndo(dateString) {
+      if(!dateString) return '';
+      const date = new Date(dateString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+
+  function loadDataMenu() {
+      document.getElementById('loading-menu').classList.remove('hidden');
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(data => {
+                // Map the 'Hari' column from sheet to 'tanggal' property for JS logic consistency
+                dataMenu = data.data.map(item => {
+                    item.tanggal = item.Hari; // Assuming sheet still calls the column 'Hari' initially
+                    return item;
+                });
+                renderTableMenu();
+                document.getElementById('loading-menu').classList.add('hidden');
+            }).getMenu();
+      } else {
+          setTimeout(() => {
+              if (dataMenu.length === 0) {
+                  // Generate precise dates for dummy data (today and next few days)
+                  const today = new Date();
+                  const d1 = new Date(today); d1.setDate(today.getDate() - 1);
+                  const d2 = new Date(today); 
+                  const d3 = new Date(today); d3.setDate(today.getDate() + 1);
+                  const d4 = new Date(today); d4.setDate(today.getDate() + 2);
+                  const d5 = new Date(today); d5.setDate(today.getDate() + 3);
+                  const d6 = new Date(today); d6.setDate(today.getDate() + 4);
+                  
+                  dataMenu = [
+                      {id: 'M1', tanggal: d1.toISOString().split('T')[0], nama: 'Nasi, Ayam Kecap, Sayur Bening', buah: 'Pisang Ambon', kalori: 580, protein: 22, karbo: 75, lemak: 14, vitamin: 'A, B6, C, Kalium', keterangan: 'Ayam Kecap tanpa MSG, Pisang Ambon ukuran sedang'},
+                      {id: 'M2', tanggal: d2.toISOString().split('T')[0], nama: 'Nasi, Ikan Asam Manis, Cah Brokoli', buah: 'Jeruk Manis', kalori: 610, protein: 24, karbo: 68, lemak: 12, vitamin: 'C, D, Omega 3, Serat', keterangan: 'Ikan Tenggiri fillet, Jeruk Manis Segar'},
+                      {id: 'M3', tanggal: d3.toISOString().split('T')[0], nama: 'Nasi, Telur Dadar Jamur, Sup Wortel Kentang', buah: 'Semangka', kalori: 540, protein: 18, karbo: 80, lemak: 16, vitamin: 'A, B-Kompleks, K', keterangan: 'Potongan semangka merah tanpa biji'},
+                      {id: 'M4', tanggal: d4.toISOString().split('T')[0], nama: 'Nasi, Bola Daging Sapi, Orek Tempe Manis', buah: 'Melon', kalori: 650, protein: 28, karbo: 70, lemak: 18, vitamin: 'Zat Besi, C, B12', keterangan: 'Daging sapi cincang asli, Melon segar manis'},
+                      {id: 'M5', tanggal: d5.toISOString().split('T')[0], nama: 'Nasi Kuning, Ayam Goreng Lengkuas, Timun Tomat', buah: 'Apel Fuji', kalori: 600, protein: 20, karbo: 85, lemak: 15, vitamin: 'A, C, Serat Tinggi', keterangan: 'Nasi kuning rempah sehat, potongan Apel Fuji'},
+                      {id: 'M6', tanggal: d6.toISOString().split('T')[0], nama: 'Bubur Kacang Hijau Roti, Susu Kedelai', buah: 'Pepaya', kalori: 480, protein: 16, karbo: 65, lemak: 10, vitamin: 'B1, B2, Kalsium, E', keterangan: 'Susu kedelai tawar manis alami, Pepaya matang'},
+                  ];
+              }
+              renderTableMenu();
+              document.getElementById('loading-menu').classList.add('hidden');
+          }, 800);
+      }
+  }
+
+  function renderTableMenu() {
+      const tbody = document.getElementById('tbody-menu');
+      tbody.innerHTML = '';
+      
+      const query = document.getElementById('searchMenu') ? document.getElementById('searchMenu').value.toLowerCase() : '';
+      const filterDate = document.getElementById('filterTanggalMenu') ? document.getElementById('filterTanggalMenu').value : '';
+      
+      let filtered = dataMenu.filter(m => {
+          const matchName = m.nama.toLowerCase().includes(query) || (m.tanggal && m.tanggal.includes(query)) || (m.buah && m.buah.toLowerCase().includes(query));
+          const matchDate = filterDate ? (m.tanggal && m.tanggal.substring(0, 10) === filterDate) : true;
+          return matchName && matchDate;
+      });
+      
+      // Sort by date descending
+      filtered.sort((a,b) => new Date(b.tanggal||0) - new Date(a.tanggal||0));
+      
+      if (filtered.length === 0) {
+          renderEmptyState('tbody-menu', 'empty-menu', false); return;
+      }
+      renderEmptyState('tbody-menu', 'empty-menu', true);
+
+      filtered.forEach((item, idx) => {
+          const isStandardMet = item.kalori >= 500 && item.protein >= 15;
+          const hariName = getHariName(item.tanggal);
+          const formattedDate = formatTanggalIndo(item.tanggal);
+          
+          const card = document.createElement('div');
+          card.className = "bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 fade-in-up opacity-0 flex flex-col h-full relative group";
+          card.setAttribute("style", `animation-delay: ${idx * 30}ms;`);
+          
+          card.innerHTML = `
+             <div class="flex justify-between items-start mb-4 relative z-10">
+                 <div>
+                     <span class="px-2.5 py-1 inline-flex text-xs font-bold rounded-lg ${getHariColor(hariName)} mb-2 shadow-sm uppercase tracking-wide">
+                        ${hariName}, ${formattedDate}
+                     </span>
+                     <h4 class="text-lg font-extrabold text-gray-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">${item.nama}</h4>
+                 </div>
+                 <!-- Edit/Delete Actions -->
+                 <div class="flex space-x-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                     <button onclick="editMenu('${item.id}')" class="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit Menu">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                     </button>
+                     <button onclick="hapusMenu('${item.id}')" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Menu">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                     </button>
+                 </div>
+             </div>
+             
+             <!-- Nutritional Stats Minimal with Hover FX & Icons -->
+             <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 bg-gray-50/50 rounded-xl p-2 md:p-3 border border-gray-100/50 relative z-10 transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-md">
+                 <div class="text-center p-2 rounded-lg bg-white shadow-sm border border-gray-100 hover:border-emerald-200 transition-colors">
+                     <span class="flex items-center justify-center text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                        <svg class="w-3 h-3 mr-1 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
+                        Kalori
+                     </span>
+                     <span class="text-xs md:text-sm font-black ${item.kalori < 500 ? 'text-red-500' : 'text-emerald-500'}">${item.kalori} <span class="text-[9px] font-medium text-gray-400">kcal</span></span>
+                 </div>
+                 <div class="text-center p-2 rounded-lg bg-white shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
+                     <span class="flex items-center justify-center text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                        <svg class="w-3 h-3 mr-1 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+                        Protein
+                     </span>
+                     <span class="text-xs md:text-sm font-black ${item.protein < 15 ? 'text-red-500' : 'text-blue-500'}">${item.protein} <span class="text-[9px] font-medium text-gray-400">g</span></span>
+                 </div>
+                 <div class="text-center p-2 rounded-lg bg-white shadow-sm border border-gray-100 hover:border-yellow-200 transition-colors">
+                     <span class="flex items-center justify-center text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                        <svg class="w-3 h-3 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Karbo
+                     </span>
+                     <span class="text-xs md:text-sm font-black text-amber-600">${item.karbo} <span class="text-[9px] font-medium text-gray-400">g</span></span>
+                 </div>
+                 <div class="text-center p-2 rounded-lg bg-white shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                     <span class="flex items-center justify-center text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                        <svg class="w-3 h-3 mr-1 text-purple-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+                        Lemak
+                     </span>
+                     <span class="text-xs md:text-sm font-black text-purple-600">${item.lemak} <span class="text-[9px] font-medium text-gray-400">g</span></span>
+                 </div>
+             </div>
+             
+             <div class="flex-1 text-sm text-gray-600 relative z-10 mb-2">
+                 ${item.buah ? `<p class="mb-2 font-medium text-blue-800 bg-blue-50 p-2 rounded-lg border border-blue-100 flex items-center"><svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg> Buah: ${item.buah}</p>` : ''}
+                 <p class="mb-2 line-clamp-2">${item.keterangan || 'Tidak ada keterangan.'}</p>
+                 ${item.vitamin ? `<div class="inline-flex items-center text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100 mt-1"><svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> ${item.vitamin}</div>` : ''}
+             </div>
+             
+             <!-- Decorative background element -->
+             <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 z-0"></div>
+          `;
+          tbody.appendChild(card);
+      });
+  }
+
+  function getHariColor(hari) {
+      const colors = {
+          'Senin': 'bg-blue-100 text-blue-800',
+          'Selasa': 'bg-emerald-100 text-emerald-800',
+          'Rabu': 'bg-amber-100 text-amber-800',
+          'Kamis': 'bg-purple-100 text-purple-800',
+          'Jumat': 'bg-green-100 text-green-800',
+          'Sabtu': 'bg-gray-100 text-gray-800'
+      };
+      return colors[hari] || 'bg-gray-100 text-gray-800';
+  }
+
+  function openModalMenu() {
+      document.getElementById('form-menu').reset();
+      document.getElementById('menu-id').value = '';
+      
+      // Select today by default
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('menu-tanggal').value = today;
+      
+      document.getElementById('modal-menu').classList.remove('hidden');
+  }
+
+  function editMenu(id) {
+      const item = dataMenu.find(d => d.id === id);
+      if(!item) return;
+      document.getElementById('menu-id').value = item.id;
+      
+      // Format to YYYY-MM-DD for date input
+      let tgl = '';
+      if(item.tanggal) {
+          try {
+              tgl = new Date(item.tanggal).toISOString().split('T')[0];
+          } catch(e) { tgl = item.tanggal; } // fallback jika string sudah format itu
+      }
+      
+      document.getElementById('menu-tanggal').value = tgl;
+      document.getElementById('menu-nama').value = item.nama;
+      document.getElementById('menu-buah').value = item.buah || '';
+      document.getElementById('menu-kalori').value = item.kalori;
+      document.getElementById('menu-protein').value = item.protein;
+      document.getElementById('menu-karbo').value = item.karbo;
+      document.getElementById('menu-lemak').value = item.lemak;
+      document.getElementById('menu-vitamin').value = item.vitamin;
+      document.getElementById('menu-keterangan').value = item.keterangan;
+      document.getElementById('modal-menu').classList.remove('hidden');
+  }
+
+  function saveMenu(e) {
+      e.preventDefault();
+      const form = document.getElementById('form-menu');
+      const data = {
+          id: document.getElementById('menu-id').value, 
+          tanggal: form.tanggal.value, 
+          nama: form.nama.value, 
+          buah: form.buah.value,
+          kalori: form.kalori.value, protein: form.protein.value,
+          karbo: form.karbo.value, lemak: form.lemak.value,
+          vitamin: form.vitamin.value, keterangan: form.keterangan.value
+      };
+      
+      const btn = document.getElementById('btn-save-menu');
+      btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+
+      if(typeof google !== 'undefined') {
+          google.script.run.withSuccessHandler(res => {
+              btn.innerHTML = 'Simpan Menu'; btn.disabled = false;
+              if(res.status === 'success') { showToast(res.message, 'success'); closeModal('modal-menu'); loadDataMenu(); }
+              else showToast(res.message, 'error');
+          }).saveMenu(data, currentUser?.username);
+      } else {
+          setTimeout(() => {
+              btn.innerHTML = 'Simpan Menu'; btn.disabled = false;
+              if (data.id) {
+                 const idx = dataMenu.findIndex(m => m.id === data.id);
+                 if(idx > -1) dataMenu[idx] = data;
+              } else {
+                 data.id = 'M' + (dataMenu.length + 1);
+                 dataMenu.push(data);
+              }
+              loadDataMenu();
+              showToast('Lokal: Menu disimpan', 'success');
+              closeModal('modal-menu');
+          }, 500);
+      }
+  }
+
+  function hapusMenu(id) {
+      if(confirm('Hapus menu ini?')) {
+          if(typeof google !== 'undefined') {
+              google.script.run.withSuccessHandler(r => {
+                  if(r.status === 'success') { showToast(r.message, 'success'); loadDataMenu(); }
+              }).deleteMenu(id, currentUser?.username);
+          } else {
+              dataMenu = dataMenu.filter(m => m.id !== id);
+              renderTableMenu();
+              showToast('Menu dihapus (Lokal)', 'success');
+          }
+      }
+  }
+
+  function exportMenuPDF() {
+      const qs = document.getElementById('searchMenu') ? document.getElementById('searchMenu').value : '';
+      const filterDate = document.getElementById('filterTanggalMenu') ? document.getElementById('filterTanggalMenu').value : '';
+      
+      let title = "Katalog Menu Makanan SPPG";
+      if(filterDate) {
+         title += " - Tanggal: " + formatTanggalIndo(filterDate);
+      }
+      
+      showToast('Menyiapkan dokumen PDF...', 'info');
+      
+      // We will clone the currently visible cards to print them nicely.
+      const gridContainer = document.getElementById('tbody-menu');
+      if(!gridContainer || gridContainer.children.length === 0 || document.getElementById('empty-menu').style.display !== 'none' && !gridContainer.querySelector('.bg-white')) {
+          showToast('Tidak ada data menu untuk diekspor', 'warning');
+          return;
+      }
+
+      // Create a temporary container for PDF generation
+      const printArea = document.createElement('div');
+      printArea.className = 'p-8 bg-white text-gray-800 font-sans';
+      
+      // Build Header
+      const headerHtml = `
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0;">SPPG MUTIH KULON</h1>
+              <h2 style="font-size: 18px; color: #4b5563; margin: 5px 0 0 0;">${title}</h2>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: flex-start;">
+      `;
+      printArea.innerHTML = headerHtml;
+      
+      // Clone cards but remove the action buttons so they don't appear in the PDF
+      const clonedGrid = gridContainer.cloneNode(true);
+      const cards = clonedGrid.querySelectorAll('div.group');
+      
+      cards.forEach(card => {
+          // Simplify styling for PDF
+          card.className = "bg-white rounded-xl border border-gray-200 p-4 shadow-sm";
+          card.style.width = "calc(50% - 15px)";
+          card.style.marginBottom = "15px";
+          card.style.pageBreakInside = "avoid";
+          
+          // Remove buttons
+          const actions = card.querySelector('.space-x-1');
+          if(actions) actions.remove();
+          
+          // Append to our flex container
+          printArea.querySelector('div[style*="flex-wrap"]').appendChild(card);
+      });
+      
+      // Add footer stamp
+      const printDate = formatTanggalIndo(new Date().toISOString().split('T')[0]);
+      printArea.innerHTML += `</div><div style="margin-top: 30px; text-align: right; font-size: 12px; color: #6b7280; border-top: 1px solid #f3f4f6; padding-top: 10px;">Dicetak pada: ${printDate}</div>`;
+
+      // Generate PDF
+      const opt = {
+          margin:       8,
+          filename:     `Menu_SPPG_${new Date().getTime()}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] },
+          html2canvas:  { scale: 2, useCORS: true },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(printArea).save().then(() => {
+          showToast('File PDF berhasil diunduh', 'success');
+      }).catch(err => {
+          console.error(err);
+          showToast('Gagal membuat PDF', 'error');
+      });
+  }
+
+  // ==========================================
+  // CRUD BAHAN & TABS
+  // ==========================================
+  let currentTabBahan = 'basah';
+
+  function switchTabBahan(tab) {
+      currentTabBahan = tab;
+      
+      const tabB = document.getElementById('tab-basah');
+      const tabK = document.getElementById('tab-kering');
+      
+      if(tab === 'basah') {
+         tabB.className = "tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-amber-500 text-amber-600 transition-colors flex items-center";
+         tabK.className = "tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors flex items-center";
+      } else {
+         tabK.className = "tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-amber-500 text-amber-600 transition-colors flex items-center";
+         tabB.className = "tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors flex items-center";
+      }
+      
+      renderTableBahan();
+  }
+
+  function loadDataBahan() {
+      document.getElementById('loading-bahan').classList.remove('hidden');
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(data => {
+                dataBahan = data;
+                renderTableBahan();
+                document.getElementById('loading-bahan').classList.add('hidden');
+            }).getBahan();
+      } else {
+          setTimeout(() => {
+              if (dataBahan.length === 0) {
+                  const today = new Date().toISOString().split('T')[0];
+                  dataBahan = [
+                      {id: 'B1', nama: 'Beras Premium', kategori: 'Bahan Kering', stok: 150, satuan: 'Kg', updatedAt: today},
+                      {id: 'B2', nama: 'Daging Ayam', kategori: 'Bahan Basah', stok: 45, satuan: 'Kg', updatedAt: '2026-02-15'},
+                      {id: 'B3', nama: 'Telur Ayam Ras', kategori: 'Bahan Basah', stok: 30, satuan: 'Kg', updatedAt: today},
+                      {id: 'B4', nama: 'Ikan Lele Filet', kategori: 'Bahan Basah', stok: 8, satuan: 'Kg', updatedAt: today},
+                      {id: 'B5', nama: 'Minyak Goreng', kategori: 'Bahan Kering', stok: 60, satuan: 'Liter', updatedAt: '2026-01-10'},
+                      {id: 'B6', nama: 'Kecap Manis', kategori: 'Bahan Kering', stok: 12, satuan: 'Botol', updatedAt: today},
+                      {id: 'B7', nama: 'Bawang Merah', kategori: 'Bahan Basah', stok: 15, satuan: 'Kg', updatedAt: today},
+                      {id: 'B8', nama: 'Wortel Bersih', kategori: 'Bahan Basah', stok: 5, satuan: 'Kg', updatedAt: today},
+                      {id: 'B9', nama: 'Kacang Hijau', kategori: 'Bahan Kering', stok: 20, satuan: 'Kg', updatedAt: '2026-02-28'}
+                  ];
+              }
+              renderTableBahan();
+              document.getElementById('loading-bahan').classList.add('hidden');
+          }, 800);
+      }
+  }
+
+  function renderTableBahan() {
+      const tbody = document.getElementById('tbody-bahan');
+      if(!tbody) return;
+      tbody.innerHTML = '';
+      
+      const q = document.getElementById('searchBahan') ? document.getElementById('searchBahan').value.toLowerCase() : '';
+      const filterStart = document.getElementById('filterStartDateBahan') ? document.getElementById('filterStartDateBahan').value : '';
+      const filterEnd = document.getElementById('filterEndDateBahan') ? document.getElementById('filterEndDateBahan').value : '';
+      
+      const categoryMatch = currentTabBahan === 'basah' ? 'Bahan Basah' : 'Bahan Kering';
+      const filtered = dataBahan.filter(b => {
+          const matchCat = b.kategori === categoryMatch;
+          const matchQuery = (b.nama||'').toLowerCase().includes(q) || (b.id||'').toLowerCase().includes(q);
+          
+          let matchDate = true;
+          if (b.updatedAt) {
+              if (filterStart && b.updatedAt < filterStart) matchDate = false;
+              if (filterEnd && b.updatedAt > filterEnd) matchDate = false;
+          } else if (filterStart || filterEnd) {
+              matchDate = false; // Require a date if filters are active
+          }
+          
+          return matchCat && matchQuery && matchDate;
+      });
+      
+      if (filtered.length === 0) {
+          renderEmptyState('table-bahan', 'empty-bahan', false); return;
+      }
+      renderEmptyState('table-bahan', 'empty-bahan', true);
+
+      filtered.forEach((item, idx) => {
+          const isLowStock = parseFloat(item.stok) < 10;
+          const trClass = isLowStock ? 'bg-red-50/70 hover:bg-red-50 transition-colors' : 'hover:bg-amber-50/50 transition-colors';
+          const textClass = isLowStock ? 'text-red-700 font-bold' : 'text-gray-900';
+          
+          const tr = document.createElement('tr');
+          tr.className = `${trClass} fade-in-up opacity-0`;
+          tr.setAttribute("style", `animation-delay: ${idx * 30}ms;`);
+          
+          tr.innerHTML = `
+             <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold ${textClass}">${item.nama}</div>
+                <div class="text-xs text-gray-500">${item.id}</div>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap text-center">
+                <div class="inline-flex items-center justify-center px-4 py-1.5 rounded-full ${isLowStock ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'} font-bold text-sm">
+                   ${item.stok} <span class="ml-1 opacity-70 border-l ${isLowStock ? 'border-red-300' : 'border-amber-300'} pl-1 font-normal text-xs uppercase">${item.satuan}</span>
+                </div>
+                ${isLowStock ? '<div class="text-[10px] text-red-500 mt-1 uppercase tracking-wider font-bold animate-pulse">Low Stock!</div>' : ''}
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                ${item.updatedAt ? formatTanggalIndo(item.updatedAt) : 'Belum Tersedia'}
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="editBahan('${item.id}')" class="text-amber-600 hover:text-amber-900 mr-2 px-2 py-1 bg-amber-50 rounded-md">Update Stok</button>
+                <button onclick="hapusBahan('${item.id}')" class="text-red-600 hover:text-red-900 px-2 py-1 bg-red-50 rounded-md">Hapus</button>
+             </td>
+          `;
+          tbody.appendChild(tr);
+      });
+  }
+
+  function openModalBahan() {
+      document.getElementById('form-bahan').reset();
+      document.getElementById('bahan-id').value = '';
+      // Default to current tab
+      document.getElementById('bahan-kategori').value = currentTabBahan === 'basah' ? 'Bahan Basah' : 'Bahan Kering';
+      document.getElementById('modal-bahan').classList.remove('hidden');
+  }
+
+  function editBahan(id) {
+      const item = dataBahan.find(d => d.id === id);
+      if(!item) return;
+      document.getElementById('bahan-id').value = item.id;
+      document.getElementById('bahan-nama').value = item.nama;
+      document.getElementById('bahan-kategori').value = item.kategori;
+      document.getElementById('bahan-satuan').value = item.satuan;
+      document.getElementById('bahan-stok').value = item.stok;
+      document.getElementById('modal-bahan').classList.remove('hidden');
+  }
+
+  function saveBahan(e) {
+      e.preventDefault();
+      const form = document.getElementById('form-bahan');
+      const data = {
+          id: document.getElementById('bahan-id').value, nama: form.nama.value, 
+          kategori: form.kategori.value, satuan: form.satuan.value,
+          stok: form.stok.value
+      };
+      
+      const btn = document.getElementById('btn-save-bahan');
+      btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+
+      if(typeof google !== 'undefined') {
+          google.script.run.withSuccessHandler(res => {
+              btn.innerHTML = 'Simpan Stok'; btn.disabled = false;
+              if(res.status === 'success') { 
+                 showToast(res.message, 'success'); 
+                 closeModal('modal-bahan'); 
+                 // auto switch tab if category changed
+                 if(data.id && data.kategori !== (currentTabBahan==='basah'?'Bahan Basah':'Bahan Kering')) {
+                     switchTabBahan(data.kategori === 'Bahan Basah' ? 'basah' : 'kering');
+                 }
+                 loadDataBahan(); 
+              } else showToast(res.message, 'error');
+          }).saveBahan(data, currentUser?.username);
+      } else {
+          setTimeout(() => {
+              btn.innerHTML = 'Simpan Stok'; btn.disabled = false;
+              if (data.id) {
+                 const idx = dataBahan.findIndex(b => b.id === data.id);
+                 if(idx > -1) dataBahan[idx] = data;
+              } else {
+                 data.id = 'B' + (dataBahan.length + 1);
+                 dataBahan.push(data);
+              }
+              if (data.id && data.kategori !== (currentTabBahan==='basah'?'Bahan Basah':'Bahan Kering')) {
+                  switchTabBahan(data.kategori === 'Bahan Basah' ? 'basah' : 'kering');
+              }
+              loadDataBahan();
+              showToast('Lokal: Bahan disimpan', 'success');
+              closeModal('modal-bahan');
+          }, 500);
+      }
+  }
+
+  function hapusBahan(id) {
+      if(confirm('Keluarkan bahan ini dari sistem?')) {
+          if(typeof google !== 'undefined') {
+              google.script.run.withSuccessHandler(r=>{
+                  if(r.status==='success') { showToast(r.message, 'success'); loadDataBahan(); }
+                  else showToast(r.message, 'error');
+              }).deleteBahan(id, currentUser?.username);
+          } else {
+              dataBahan = dataBahan.filter(d => d.id !== id);
+              renderTableBahan();
+              showToast('Bahan dihapus (Lokal)', 'success');
+          }
+      }
+  }
+
+  function exportBahanXLSX() {
+      if(typeof XLSX === 'undefined') {
+          showToast('Library XLSX belum termuat. Silahkan cek koneksi internet.', 'error');
+          return;
+      }
+      
+      const q = document.getElementById('searchBahan') ? document.getElementById('searchBahan').value.toLowerCase() : '';
+      const filterStart = document.getElementById('filterStartDateBahan') ? document.getElementById('filterStartDateBahan').value : '';
+      const filterEnd = document.getElementById('filterEndDateBahan') ? document.getElementById('filterEndDateBahan').value : '';
+      
+      // Filter list based on current active searches and date range but export BOTH categories
+      const exportList = dataBahan.filter(b => {
+          const matchQuery = (b.nama||'').toLowerCase().includes(q) || (b.id||'').toLowerCase().includes(q);
+          
+          let matchDate = true;
+          if (b.updatedAt) {
+              if (filterStart && b.updatedAt < filterStart) matchDate = false;
+              if (filterEnd && b.updatedAt > filterEnd) matchDate = false;
+          } else if (filterStart || filterEnd) {
+              matchDate = false;
+          }
+          
+          return matchQuery && matchDate;
+      });
+
+      if(exportList.length === 0) {
+          showToast('Tidak ada data bahan untuk direkap sesuai kriteria/rentang tanggal ini.', 'warning');
+          return;
+      }
+      
+      const exportData = exportList.map(b => ({
+          'ID Bahan': b.id,
+          'Nama Bahan': b.nama,
+          'Kategori': b.kategori,
+          'Total Stok': b.stok,
+          'Satuan': b.satuan,
+          'Terakhir Update': b.updatedAt || '-'
+      }));
+      
+      let titleRange = 'Semua_Waktu';
+      if (filterStart && filterEnd) titleRange = `${filterStart}_sd_${filterEnd}`;
+      else if (filterStart) titleRange = `Mulai_${filterStart}`;
+      else if (filterEnd) titleRange = `Hingga_${filterEnd}`;
+      
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      // Setup widths
+      ws['!cols'] = [ {wch: 10}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 10}, {wch: 20} ];
+      
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Rekap Bahan");
+      
+      XLSX.writeFile(wb, `Rekap_Bahan_SPPG_${titleRange}.xlsx`);
+  }
+
+  // ==========================================
+  // CRUD DISTRIBUSI
+  // ==========================================
+  
+  let dataDistribusi = [];
+  
+  function loadDataDistribusi() {
+      document.getElementById('loading-distribusi').classList.remove('hidden');
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(res => {
+                if(res.status === 'success') {
+                    dataDistribusi = res.data.distribusi;
+                    renderTableDistribusi();
+                    populateDistribusiDropdowns({ sekolah: res.data.options.sekolah, menu: res.data.options.menu });
+                } else {
+                    showToast(res.message, 'error');
+                }
+                document.getElementById('loading-distribusi').classList.add('hidden');
+            }).getDistribusi();
+      } else {
+          // Dummy data
+          setTimeout(() => {
+              if (dataDistribusi.length === 0) {
+                  dataDistribusi = [
+                      {ID: 'DST1', TanggalTampil: '2026-03-15', SekolahID: 'SDN 1 Mutih Kulon', MenuID: 'Ayam Kecap Sayur Bening', JumlahPorsi: 320},
+                      {ID: 'DST2', TanggalTampil: '2026-03-15', SekolahID: 'MI Darussalam', MenuID: 'Ayam Kecap Sayur Bening', JumlahPorsi: 180},
+                      {ID: 'DST3', TanggalTampil: '2026-03-14', SekolahID: 'PAUD Melati', MenuID: 'Soto Ayam Kuah Bening', JumlahPorsi: 45},
+                      {ID: 'DST4', TanggalTampil: '2026-03-14', SekolahID: 'TK Pertiwi Mutih', MenuID: 'Telur Dadar Sayur', JumlahPorsi: 60},
+                      {ID: 'DST5', TanggalTampil: '2026-03-13', SekolahID: 'SDN 2 Mutih Kulon', MenuID: 'Nasi Kuning Nugget', JumlahPorsi: 250}
+                  ];
+              }
+              renderTableDistribusi();
+              
+              // Helper format needed for dropdowns
+              const mappedSekolahOptions = dataSekolah.map(s => ({ID: s.nama, NamaSekolah: s.nama, Kategori: s.kategori, JumlahSiswa: s.siswa}));
+              const mappedMenuOptions = dataMenu.map(m => ({ID: m.nama, Hari: m.hari, NamaMenu: m.nama}));
+              
+              populateDistribusiDropdowns({
+                  sekolah: mappedSekolahOptions,
+                  menu: mappedMenuOptions
+              });
+              document.getElementById('loading-distribusi').classList.add('hidden');
+          }, 800);
+      }
+  }
+
+  function renderTableDistribusi() {
+      const tbody = document.getElementById('tbody-distribusi');
+      tbody.innerHTML = '';
+      
+      const filterTgl = document.getElementById('filterTglDistribusi').value;
+      let filtered = dataDistribusi;
+      
+      if(filterTgl) {
+         filtered = dataDistribusi.filter(d => d.TanggalTampil === filterTgl);
+      }
+      
+      if (filtered.length === 0) {
+          renderEmptyState('table-distribusi', 'empty-distribusi', false); return;
+      }
+      renderEmptyState('table-distribusi', 'empty-distribusi', true);
+
+      filtered.forEach((item, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-blue-50/50 transition-colors fade-in-up opacity-0";
+          tr.setAttribute("style", `animation-delay: ${idx * 30}ms;`);
+          
+          tr.innerHTML = `
+             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.TanggalTampil}</td>
+             <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${item.SekolahID}</td>
+             <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">${item.MenuID}</td>
+             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-gray-900">${item.JumlahPorsi} <span class="text-xs font-normal text-gray-500">Porsi</span></td>
+             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="hapusDistribusi('${item.ID}')" class="text-red-600 hover:text-red-900 px-2 py-1 bg-red-50 rounded-md">Hapus</button>
+             </td>
+          `;
+          tbody.appendChild(tr);
+      });
+  }
+
+  function populateDistribusiDropdowns(options) {
+      if(!options) return;
+      
+      const sSelect = document.getElementById('distribusi-sekolahId');
+      const mSelect = document.getElementById('distribusi-menuId');
+      const lSelect = document.getElementById('lap-sekolah');
+      const lMenu = document.getElementById('lap-menu');
+      
+      // Preserve first option
+      sSelect.innerHTML = '<option value="">-- Pilih Sekolah --</option>';
+      mSelect.innerHTML = '<option value="">-- Pilih Menu --</option>';
+      if(lSelect) lSelect.innerHTML = '<option value="">-- Pilih Sekolah --</option>';
+      if(lMenu) lMenu.innerHTML = '<option value="">-- Pilih Menu --</option>';
+      
+      options.sekolah.forEach(s => {
+         const id = s.ID || s.id || '';
+         const nama = s.NamaSekolah || s.nama || '';
+         const kat = s.Kategori || s.kategori || '';
+         const siswa = s.JumlahSiswa || s.siswa || 0;
+         
+         // store stringified object as data attr to easily retrieve siswa count later
+         const optStr = `<option value="${id}" data-siswa="${siswa}">${nama} ${kat ? '('+kat+')' : ''}</option>`;
+         sSelect.insertAdjacentHTML('beforeend', optStr);
+         if(lSelect) lSelect.insertAdjacentHTML('beforeend', `<option value="${id}">${nama}</option>`);
+      });
+      
+      options.menu.forEach(m => {
+         const id = m.ID || m.id || '';
+         const nama = m.NamaMenu || m.nama || '';
+         let hari = m.Hari || m.hari || '';
+         if (hari === 'undefined') hari = '';
+         
+         const displayHari = hari ? `${hari} - ` : '';
+         const mStr = `<option value="${id}">${displayHari}${nama}</option>`;
+         
+         mSelect.insertAdjacentHTML('beforeend', mStr);
+         if(lMenu) lMenu.insertAdjacentHTML('beforeend', mStr);
+      });
+  }
+
+  function autoFillPorsiSiswa() {
+      const select = document.getElementById('distribusi-sekolahId');
+      const selectedOpt = select.options[select.selectedIndex];
+      if(selectedOpt && selectedOpt.value) {
+          const targetSiswa = selectedOpt.getAttribute('data-siswa');
+          document.getElementById('distribusi-porsi').value = targetSiswa;
+      } else {
+          document.getElementById('distribusi-porsi').value = '';
+      }
+  }
+
+  function openModalDistribusi() {
+      document.getElementById('form-distribusi').reset();
+      document.getElementById('distribusi-id').value = '';
+      // Set default date today
+      document.getElementById('distribusi-tanggal').valueAsDate = new Date();
+      document.getElementById('modal-distribusi').classList.remove('hidden');
+  }
+
+  function saveDistribusi(e) {
+      e.preventDefault();
+      const form = document.getElementById('form-distribusi');
+      
+      const data = {
+          id: document.getElementById('distribusi-id').value,
+          tanggal: form.tanggal.value,
+          sekolahId: form.sekolahId.value,
+          menuId: form.menuId.value,
+          porsi: form.porsi.value
+      };
+      
+      const btn = document.getElementById('btn-save-distribusi');
+      btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+
+      if(typeof google !== 'undefined') {
+          google.script.run.withSuccessHandler(res => {
+              btn.innerHTML = 'Simpan Distribusi'; btn.disabled = false;
+              if(res.status === 'success') { 
+                 showToast(res.message, 'success'); 
+                 closeModal('modal-distribusi'); 
+                 loadDataDistribusi(); 
+              } else showToast(res.message, 'error');
+          }).saveDistribusi(data, currentUser?.username);
+      } else {
+          setTimeout(() => {
+              btn.innerHTML = 'Simpan Distribusi'; btn.disabled = false;
+              const s = dataSekolah.find(x => x.id === data.sekolahId) || {nama: document.getElementById('distribusi-sekolahId').options[document.getElementById('distribusi-sekolahId').selectedIndex].text || data.sekolahId};
+              const m = dataMenu.find(x => x.id === data.menuId) || {nama: document.getElementById('distribusi-menuId').options[document.getElementById('distribusi-menuId').selectedIndex].text || data.menuId};
+              const pushData = {
+                  ID: data.id || ('DST' + (dataDistribusi.length + 10)),
+                  TanggalTampil: data.tanggal,
+                  SekolahID: s.nama,
+                  MenuID: m.nama,
+                  JumlahPorsi: data.porsi
+              };
+              if (data.id) {
+                 const idx = dataDistribusi.findIndex(b => b.ID === data.id);
+                 if(idx > -1) dataDistribusi[idx] = pushData;
+              } else {
+                 dataDistribusi.unshift(pushData);
+              }
+              loadDataDistribusi();
+              showToast('Lokal: Distribusi disimpan', 'success');
+              closeModal('modal-distribusi');
+          }, 500);
+      }
+  }
+
+  function hapusDistribusi(id) {
+      if(confirm('Hapus log distribusi ini?')) {
+          if(typeof google !== 'undefined') {
+              google.script.run.withSuccessHandler(r => {
+                  if(r.status === 'success') { showToast(r.message, 'success'); loadDataDistribusi(); }
+                  else showToast(r.message, 'error');
+              }).deleteDistribusi(id, currentUser?.username);
+          } else {
+              dataDistribusi = dataDistribusi.filter(d => d.ID !== id);
+              renderTableDistribusi();
+              showToast('Distribusi dihapus (Lokal)', 'success');
+          }
+      }
+  }
+
+  function loadDataLaporan() {
+      const btn = document.getElementById('btn-generate-lap');
+      if(btn) { btn.innerHTML = 'Memuat Data...'; btn.disabled = true; }
+      
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(res => {
+                if(res.status === 'success') {
+                    populateDistribusiDropdowns({ sekolah: res.data.options.sekolah, menu: res.data.options.menu });
+                }
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Preview & Cetak Halaman`;
+                }
+            }).getDistribusi();
+      } else {
+          // Dummy data local
+          if (dataSekolah.length === 0) loadDataSekolah();
+          if (dataMenu.length === 0) loadDataMenu();
+          
+          function checkAndLoad() {
+              if (dataSekolah.length === 0 || dataMenu.length === 0) {
+                  setTimeout(checkAndLoad, 100);
+                  return;
+              }
+              const mappedSekolahOptions = dataSekolah.map(s => ({ID: s.id || s.nama, NamaSekolah: s.nama, Kategori: s.kategori, JumlahSiswa: s.siswa}));
+              const mappedMenuOptions = dataMenu.map(m => ({ID: m.id || m.nama, Hari: m.hari, NamaMenu: m.nama}));
+              
+              populateDistribusiDropdowns({
+                  sekolah: mappedSekolahOptions,
+                  menu: mappedMenuOptions
+              });
+              
+              if(btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Preview & Cetak Halaman`;
+              }
+          }
+          checkAndLoad();
+      }
+  }
+
+  function generateLaporan(e) {
+      e.preventDefault();
+      const tgl = document.getElementById('lap-tanggal').value;
+      const sekId = document.getElementById('lap-sekolah').value;
+      const menId = document.getElementById('lap-menu').value;
+      const sppg = document.getElementById('lap-sppg').value || '.........................';
+      const gizi = document.getElementById('lap-gizi').value || '.........................';
+      const penerima = document.getElementById('lap-penerima').value || '.........................';
+      
+      if (!tgl || !sekId || !menId) {
+          showToast('Silahkan lengkapi data penyaluran Laporan', 'error');
+          return;
+      }
+      
+      const s = dataSekolah.find(x => x.id === sekId || x.ID === sekId);
+      const m = dataMenu.find(x => x.id === menId || x.ID === menId);
+      
+      const pData = {
+          tanggal: tgl,
+          sekolah: s ? (s.nama || s.NamaSekolah) : sekId,
+          menu: m ? (m.nama || m.NamaMenu) : menId,
+          buah: m ? (m.buah || m.Buah || '-') : '-',
+          karbohidrat: m ? (m.karbo || m.Karbohidrat || '0') : '0',
+          protein: m ? (m.protein || m.Protein || '0') : '0',
+          lemak: m ? (m.lemak || m.Lemak || '0') : '0',
+          kalori: m ? (m.kalori || m.Kalori || '0') : '0',
+          vitamin: m ? (m.vitamin || m.Vitamin || '-') : '-',
+          sppg: sppg,
+          gizi: gizi,
+          penerima: penerima
+      };
+      
+      const query = new URLSearchParams(pData).toString();
+      const url = `/?page=print&${query}`;
+      window.open(url, '_blank');
+  }
+
+  // ==========================================
+  // CRUD KARYAWAN
+  // ==========================================
+  
+  let dataKaryawan = [];
+  
+  function loadDataKaryawan() {
+      document.getElementById('loading-karyawan').classList.remove('hidden');
+      if(typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(res => {
+                if(res.status === 'success') {
+                    dataKaryawan = res.data;
+                    renderTableKaryawan();
+                } else {
+                    showToast(res.message, 'error');
+                }
+                document.getElementById('loading-karyawan').classList.add('hidden');
+            }).getKaryawan();
+      } else {
+          // Dummy data
+          setTimeout(() => {
+              if (dataKaryawan.length === 0) {
+                  dataKaryawan = [
+                      {id: 'K1', nama: 'Budi Santoso', jabatan: 'Koordinator Dapur', nohp: '081234567890'},
+                      {id: 'K2', nama: 'Siti Aminah', jabatan: 'Ahli Gizi', nohp: '085678901234'},
+                      {id: 'K3', nama: 'Ahmad Fauzan', jabatan: 'Kurir Distribusi', nohp: '089876543210'},
+                  ];
+              }
+              renderTableKaryawan();
+              document.getElementById('loading-karyawan').classList.add('hidden');
+          }, 800);
+      }
+  }
+
+  function renderTableKaryawan() {
+      const tbody = document.getElementById('tbody-karyawan');
+      tbody.innerHTML = '';
+      
+      const query = document.getElementById('searchKaryawan').value.toLowerCase();
+      const filtered = dataKaryawan.filter(k => 
+         k.nama.toLowerCase().includes(query) || k.jabatan.toLowerCase().includes(query)
+      );
+      
+      if (filtered.length === 0) {
+          renderEmptyState('table-karyawan', 'empty-karyawan', false); return;
+      }
+      renderEmptyState('table-karyawan', 'empty-karyawan', true);
+
+      filtered.forEach((item, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-teal-50/50 transition-colors fade-in-up opacity-0";
+          tr.setAttribute("style", `animation-delay: ${idx * 30}ms;`);
+          
+          tr.innerHTML = `
+             <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                   <div class="h-10 w-10 flex-shrink-0 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">
+                       ${item.nama.charAt(0).toUpperCase()}
+                   </div>
+                   <div class="ml-4">
+                      <div class="text-sm font-bold text-gray-900">${item.nama}</div>
+                      <div class="text-xs text-gray-500">ID: ${item.id}</div>
+                   </div>
+                </div>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.jabatan}</td>
+             <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 font-mono">${item.nohp}</td>
+             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="editKaryawan('${item.id}')" class="text-teal-600 hover:text-teal-900 mr-2 px-2 py-1 bg-teal-50 rounded-md">Edit</button>
+                <button onclick="hapusKaryawan('${item.id}')" class="text-red-600 hover:text-red-900 px-2 py-1 bg-red-50 rounded-md">Hapus</button>
+             </td>
+          `;
+          tbody.appendChild(tr);
+      });
+  }
+
+  function openModalKaryawan() {
+      document.getElementById('form-karyawan').reset();
+      document.getElementById('karyawan-id').value = '';
+      document.getElementById('modal-karyawan').classList.remove('hidden');
+  }
+
+  function editKaryawan(id) {
+      const item = dataKaryawan.find(d => d.id === id);
+      if(!item) return;
+      document.getElementById('karyawan-id').value = item.id;
+      document.getElementById('karyawan-nama').value = item.nama;
+      document.getElementById('karyawan-jabatan').value = item.jabatan;
+      document.getElementById('karyawan-nohp').value = item.nohp;
+      document.getElementById('modal-karyawan').classList.remove('hidden');
+  }
+
+  function saveKaryawan(e) {
+      e.preventDefault();
+      const form = document.getElementById('form-karyawan');
+      const data = {
+          id: document.getElementById('karyawan-id').value,
+          nama: form.nama.value,
+          jabatan: form.jabatan.value,
+          nohp: form.nohp.value
+      };
+      
+      const btn = document.getElementById('btn-save-karyawan');
+      btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+
+      if(typeof google !== 'undefined') {
+          google.script.run.withSuccessHandler(res => {
+              btn.innerHTML = 'Simpan Data'; btn.disabled = false;
+              if(res.status === 'success') { 
+                 showToast(res.message, 'success'); 
+                 closeModal('modal-karyawan'); 
+                 loadDataKaryawan(); 
+              } else showToast(res.message, 'error');
+          }).saveKaryawan(data, currentUser?.username);
+      } else {
+          setTimeout(() => {
+              btn.innerHTML = 'Simpan Data'; btn.disabled = false;
+              if (data.id) {
+                 const idx = dataKaryawan.findIndex(k => k.id === data.id);
+                 if(idx > -1) dataKaryawan[idx] = data;
+              } else {
+                 data.id = 'K' + (dataKaryawan.length + 1);
+                 dataKaryawan.push(data);
+              }
+              renderTableKaryawan();
+              showToast('Lokal: Karyawan disimpan', 'success');
+              closeModal('modal-karyawan');
+          }, 500);
+      }
+  }
+
+  function hapusKaryawan(id) {
+      if(confirm('Hapus log karyawan ini?')) {
+          if(typeof google !== 'undefined') {
+              google.script.run.withSuccessHandler(r => {
+                  if(r.status === 'success') { showToast(r.message, 'success'); loadDataKaryawan(); }
+                  else showToast(r.message, 'error');
+              }).deleteKaryawan(id, currentUser?.username);
+          } else {
+              dataKaryawan = dataKaryawan.filter(d => d.id !== id);
+              renderTableKaryawan();
+              showToast('Karyawan dihapus (Lokal)', 'success');
+          }
+      }
+  }
+
+  function exportKaryawanExcel() {
+      if (!dataKaryawan || dataKaryawan.length === 0) {
+          showToast('Tidak ada data karyawan untuk diekspor', 'warning');
+          return;
+      }
+      
+      showToast('Menyiapkan file Excel...', 'info');
+      
+      try {
+          // Siapkan data untuk SheetJS
+          const worksheetData = [];
+          
+          // Header
+          worksheetData.push(['ID Karyawan', 'Nama Lengkap', 'Jabatan / Peran', 'No. HP']);
+          
+          // Row data
+          dataKaryawan.forEach(item => {
+              worksheetData.push([
+                  item.id,
+                  item.nama,
+                  item.jabatan,
+                  item.nohp // SheetJS akan otomatis handle ini sebagai string selama format defaultnya General/Text
+              ]);
+          });
+          
+          // Buat Worksheet
+          const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+          
+          // Atur lebar kolom (rapi)
+          const wscols = [
+              {wch: 15}, // ID Karyawan
+              {wch: 30}, // Nama
+              {wch: 25}, // Jabatan
+              {wch: 20}  // No HP
+          ];
+          ws['!cols'] = wscols;
+          
+          // Styling dasar (Header bold dll di SheetJS CE/Free butuh plugin tambahan, tapi setidaknya data rapi).
+          // Buat Workbook
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Data Karyawan");
+          
+          // Konversi dan Unduh
+          const fileName = `Data_Karyawan_SPPG_${new Date().getTime()}.xlsx`;
+          XLSX.writeFile(wb, fileName);
+          
+          showToast('File Excel berhasil didownload', 'success');
+      } catch (err) {
+          console.error(err);
+          showToast('Gagal memproses file Excel.', 'error');
+      }
+  }
+
+  // Hook load data ke navigation
+  const originalLoadPage = loadPage;
+  loadPage = function(pageId, linkEl) {
+      originalLoadPage(pageId, linkEl);
+      if(pageId === 'sekolah' && dataSekolah.length === 0) loadDataSekolah();
+      if(pageId === 'menu' && dataMenu.length === 0) loadDataMenu();
+      if(pageId === 'bahan' && dataBahan.length === 0) loadDataBahan();
+      if(pageId === 'distribusi' && dataDistribusi.length === 0) loadDataDistribusi();
+      if(pageId === 'karyawan' && dataKaryawan.length === 0) loadDataKaryawan();
+      if(pageId === 'laporan') loadDataLaporan();
+  }
+  
+  // ==========================================
+  // DARK MODE TOGGLE
+  // ==========================================
+  function initTheme() {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      renderThemeButton();
+  }
+  
+  function toggleTheme() {
+      if (document.documentElement.classList.contains('dark')) {
+      } else {
+          document.documentElement.classList.add('dark');
+          localStorage.theme = 'dark';
+      }
+      renderThemeButton();
+  }
+  
+  function renderThemeButton() {
+     // Wait a bit if DOM wasn't fully ready since nav is async occasionally
+     setTimeout(() => {
+         const themeBtnContainer = document.getElementById('theme-toggle-container');
+         if(themeBtnContainer) {
+             const isDark = document.documentElement.classList.contains('dark');
+             themeBtnContainer.innerHTML = isDark 
+               ? `<button onclick="toggleTheme()" class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg></button>`
+               : `<button onclick="toggleTheme()" class="p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></button>`;
+         }
+     }, 100);
+  }
+
+  // Initialize Theme on startup
+  initTheme();
+
+</script>

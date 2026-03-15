@@ -1,0 +1,164 @@
+<!-- Page: Data Sekolah -->
+<div id="page-sekolah" class="page-content hidden">
+    <!-- Header Page -->
+    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Data Sekolah Penerima</h2>
+            <p class="text-sm text-gray-500 mt-1">Kelola data sekolah dan jumlah siswa manfaat makan siang gratis.</p>
+        </div>
+        <button onclick="openModalSekolah()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Tambah Sekolah
+        </button>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div class="relative w-full sm:w-80">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <input type="text" id="searchSekolah" onkeyup="filterTable('table-sekolah', this.value)" class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-colors" placeholder="Cari nama sekolah atau alamat...">
+        </div>
+        
+        <div class="flex items-center space-x-2 text-sm text-gray-500">
+            <span>Kategori:</span>
+            <select id="filterKategoriSekolah" onchange="filterKategori('table-sekolah')" class="border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="all">Semua</option>
+                <option value="PAUD">PAUD</option>
+                <option value="TK">TK</option>
+                <option value="SD/MI">SD/MI</option>
+                <option value="SMP/MTS">SMP/MTS</option>
+                <option value="SMA/SMK/MA">SMA/SMK/MA</option>
+                <option value="PONPES">PONPES</option>
+                <option value="B3">B3</option>
+            </select>
+            <span class="ml-2">Porsi:</span>
+            <select id="filterPorsiSekolah" onchange="filterKategori('table-sekolah')" class="border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="all">Semua</option>
+                <option value="Besar">Besar</option>
+                <option value="Kecil">Kecil</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto min-h-[400px] relative">
+            <!-- Loading Indicator -->
+            <div id="loading-sekolah" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-2"></div>
+                <span class="text-sm font-medium text-gray-500">Memuat Data...</span>
+            </div>
+
+            <table id="table-sekolah" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Sekolah</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Alamat Lengkap</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Jenis Porsi</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Jumlah Siswa / Porsi</th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-sekolah" class="bg-white divide-y divide-gray-100">
+                    <!-- Rows will be injected here via JS -->
+                </tbody>
+            </table>
+            
+            <!-- Empty State -->
+            <div id="empty-sekolah" class="hidden py-16 text-center text-gray-500">
+                 <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                 <span class="block text-sm font-medium text-gray-900">Belum Ada Data Sekolah</span>
+                 <span class="block text-sm mt-1">Tambahkan sekolah pertama untuk memulai perhitungan statistik.</span>
+            </div>
+        </div>
+        
+        <!-- Pagination Component -->
+        <div class="bg-gray-50 px-6 py-3 border-t border-gray-100 flex items-center justify-between sm:px-6">
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Menampilkan <span class="font-bold" id="sekolah-page-start">0</span> hingga <span class="font-bold" id="sekolah-page-end">0</span> dari <span class="font-bold" id="sekolah-total-data">0</span> entri
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="sekolah-pagination">
+                        <!-- Pagination buttons will be injected here via JS -->
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form Sekolah -->
+<div id="modal-sekolah" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeModal('modal-sekolah')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full scale-100">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-900" id="sekolah-modal-title">Tambah Sekolah Baru</h3>
+                    <button onclick="closeModal('modal-sekolah')" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="form-sekolah" onsubmit="saveSekolah(event)" class="space-y-4">
+                    <input type="hidden" id="sekolah-id" name="id">
+                    
+                    <div>
+                        <label for="sekolah-nama" class="block text-sm font-semibold text-gray-700 mb-1">Nama Sekolah / Instansi <span class="text-red-500">*</span></label>
+                        <input type="text" id="sekolah-nama" name="nama" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 focus:bg-white" placeholder="Contoh: SDN 1 Mutih Kulon">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="sekolah-kategori" class="block text-sm font-semibold text-gray-700 mb-1">Kategori <span class="text-red-500">*</span></label>
+                            <select id="sekolah-kategori" name="kategori" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 focus:bg-white">
+                                <option value="" disabled selected>Pilih Kategori</option>
+                                <option value="PAUD">PAUD</option>
+                                <option value="TK">TK</option>
+                                <option value="SD/MI">SD/MI</option>
+                                <option value="SMP/MTS">SMP/MTS</option>
+                                <option value="SMA/SMK/MA">SMA/SMK/MA</option>
+                                <option value="PONPES">PONPES</option>
+                                <option value="B3">B3</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sekolah-porsi" class="block text-sm font-semibold text-gray-700 mb-1">Jenis Porsi <span class="text-red-500">*</span></label>
+                            <select id="sekolah-porsi" name="porsi" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 focus:bg-white">
+                                <option value="" disabled selected>Pilih Porsi</option>
+                                <option value="Besar">Besar</option>
+                                <option value="Kecil">Kecil</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sekolah-siswa" class="block text-sm font-semibold text-gray-700 mb-1">Jml Siswa/Porsi <span class="text-red-500">*</span></label>
+                            <input type="number" id="sekolah-siswa" name="siswa" min="1" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 focus:bg-white" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="sekolah-alamat" class="block text-sm font-semibold text-gray-700 mb-1">Alamat Lengkap <span class="text-red-500">*</span></label>
+                        <textarea id="sekolah-alamat" name="alamat" rows="3" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 focus:bg-white resize-none" placeholder="Masukkan alamat lengkap sekolah..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-2xl">
+                <button type="submit" form="form-sekolah" id="btn-save-sekolah" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                    Simpan Data
+                </button>
+                <button type="button" onclick="closeModal('modal-sekolah')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

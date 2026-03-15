@@ -1,0 +1,70 @@
+<!-- Page: Laporan -->
+<div id="page-laporan" class="page-content hidden">
+    <!-- Header Page -->
+    <div class="mb-6 flex flex-col justify-between items-start gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight dark:text-gray-100">Buku Laporan Cetak</h2>
+            <p class="text-sm text-gray-500 mt-1 dark:text-gray-400">Pilih rentang tanggal dan filter untuk menghasilkan laporan fisik Distribusi Makanan Bergizi.</p>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 max-w-4xl mx-auto">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b pb-4 dark:border-gray-700">Generator Laporan PDF / Cetak</h3>
+        
+        <form id="form-laporan" onsubmit="generateLaporan(event)" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Data Penyaluran -->
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Data Penyaluran</label>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Tanggal Distribusi:</span>
+                            <input type="date" id="lap-tanggal" required class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Pilih Sekolah:</span>
+                            <select id="lap-sekolah" required class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white">
+                                <option value="">-- Pilih Sekolah --</option>
+                                <!-- Injected from DB -->
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Pilih Menu Makanan:</span>
+                            <select id="lap-menu" required class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white">
+                                <option value="">-- Pilih Menu --</option>
+                                <!-- Injected from DB -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signatures -->
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Penandatangan Laporan</label>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">KA SPPG (Koordinator):</span>
+                            <input type="text" id="lap-sppg" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white" placeholder="Boleh dikosongkan untuk tanda tangan manual">
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Ahli Gizi:</span>
+                            <input type="text" id="lap-gizi" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white" placeholder="Boleh dikosongkan untuk tanda tangan manual">
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Penerima Sekolah:</span>
+                            <input type="text" id="lap-penerima" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white" placeholder="Boleh dikosongkan untuk tanda tangan manual">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="loadPage('dashboard', document.querySelector('a:first-child'))" class="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Kembali</button>
+                <button type="submit" id="btn-generate-lap" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm flex items-center transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Preview & Cetak Halaman
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

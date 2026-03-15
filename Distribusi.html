@@ -1,0 +1,119 @@
+<!-- Page: Distribusi Harian -->
+<div id="page-distribusi" class="page-content hidden">
+
+    <!-- Header Page -->
+    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight ">Distribusi Harian</h2>
+            <p class="text-sm text-gray-500 mt-1 ">Pencatatan penyaluran porsi mekanan ke setiap institusi.</p>
+        </div>
+        <div class="flex space-x-3 w-full sm:w-auto">
+            <button onclick="openModalDistribusi()" class="flex-1 sm:flex-none justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Catat Distribusi
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters & Actions -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div class="flex items-center space-x-3 w-full sm:w-auto">
+            <input type="date" id="filterTglDistribusi" class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500" value="">
+            <button onclick="loadDataDistribusi()" class="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Filter Tanggal</button>
+        </div>
+        <button onclick="tampilkanLaporan()" class="w-full sm:w-auto flex items-center justify-center px-4 py-2 border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-medium transition">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            Mode Cetak & Laporan
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto min-h-[400px] relative">
+            <!-- Loading Indicator -->
+            <div id="loading-distribusi" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-2"></div>
+                <span class="text-sm font-medium text-gray-500 ">Memuat Data Transaksi...</span>
+            </div>
+
+            <table id="table-distribusi" class="min-w-full divide-y divide-gray-200 ">
+                <thead class="bg-gray-50 ">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sekolah Penerima</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Menu</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Jumlah Porsi</th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-distribusi" class="bg-white divide-y divide-gray-100 ">
+                    <!-- Rows will be injected here via JS -->
+                </tbody>
+            </table>
+            
+            <!-- Empty State -->
+            <div id="empty-distribusi" class="hidden py-16 text-center text-gray-500 ">
+                 <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                 <span class="block text-sm font-medium text-gray-900 ">Tidak Ada Distribusi</span>
+                 <span class="block text-sm mt-1">Belum ada rekam penyaluran makanan untuk periode ini.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form Distribusi -->
+<div id="modal-distribusi" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeModal('modal-distribusi')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-visible shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md w-full scale-100 border ">
+            <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-100 ">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-900 " id="distribusi-modal-title">Form Penyaluran</h3>
+                    <button onclick="closeModal('modal-distribusi')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="form-distribusi" onsubmit="saveDistribusi(event)" class="space-y-4">
+                    <input type="hidden" id="distribusi-id" name="id">
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Distribusi <span class="text-red-500">*</span></label>
+                        <input type="date" id="distribusi-tanggal" name="tanggal" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 ">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Sekolah <span class="text-red-500">*</span></label>
+                        <select id="distribusi-sekolahId" name="sekolahId" onchange="autoFillPorsiSiswa()" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 ">
+                            <option value="">-- Pilih Sekolah --</option>
+                            <!-- Injected by script -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Menu Hari Ini <span class="text-red-500">*</span></label>
+                        <select id="distribusi-menuId" name="menuId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 ">
+                            <option value="">-- Pilih Menu --</option>
+                            <!-- Injected by script -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Jumlah Porsi (Target / Aktual) <span class="text-red-500">*</span></label>
+                        <input type="number" id="distribusi-porsi" name="porsi" min="1" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 font-bold text-lg" placeholder="0">
+                        <p class="text-xs text-gray-500 mt-1" id="distribusi-hint">Otomatis terisi estimasi jumlah siswa sekolah terpilih.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-2xl ">
+                <button type="submit" form="form-distribusi" id="btn-save-distribusi" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                    Simpan Distribusi
+                </button>
+                <button type="button" onclick="closeModal('modal-distribusi')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

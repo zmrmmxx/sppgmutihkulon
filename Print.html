@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Cetak Laporan - SPPG Mutih Kulon</title>
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; color: #000; background: #fff; margin: 0; padding: 2cm; }
+        .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 30px; position: relative; }
+        .header img { position: absolute; left: 0; top: 0; height: 90px; width: auto; }
+        .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1.5px; }
+        .header h2 { margin: 5px 0 0; font-size: 18px; font-weight: normal; }
+        .header p { margin: 5px 0 0; font-size: 14px; }
+        .title { text-align: center; margin-bottom: 30px; font-size: 18px; font-weight: bold; text-decoration: underline; text-transform: uppercase; }
+        
+        table.meta-table { width: 100%; border: none; margin-bottom: 25px; }
+        table.meta-table td { border: none; padding: 5px 0; font-size: 15px; vertical-align: top; }
+        .td-label { width: 25%; font-weight: bold; }
+        .td-colon { width: 2%; text-align: center; font-weight: bold; }
+        
+        table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        table.data-table th, table.data-table td { border: 1px solid #000; padding: 10px 15px; font-size: 15px; }
+        table.data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; }
+        
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        
+        .footer { display: flex; justify-content: space-between; margin-top: 60px; padding: 0 10px; }
+        .sign-box { text-align: center; width: 30%; font-size: 15px; }
+        .sign-date { margin-bottom: 10px; min-height: 20px; }
+        .sign-role { font-weight: bold; margin-bottom: 130px; text-transform: uppercase;}
+        .sign-name { font-weight: inline; font-size: 15px; }
+        .sign-name span { font-weight: bold; text-decoration: underline; display:block; padding-bottom: 2px;}
+        
+        @media print {
+            body { padding: 0; }
+            button { display: none; }
+            @page { margin: 1.5cm; }
+            
+            table, tr, td, th, .sign-box, .header, .title, .footer {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+        
+        .print-btn {
+            position: fixed; top: 20px; right: 20px; padding: 10px 20px;
+            background: #2563eb; color: #fff; border: none; border-radius: 5px;
+            cursor: pointer; font-family: Arial, sans-serif; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">Cetak Dokumen</button>
+
+    <div class="header">
+        <img src="https://i.ibb.co.com/8gDNvQZV/download-removebg-preview.png" alt="Logo">
+        <h1>BADAN GIZI NASIONAL</h1>
+        <h2>PROGRAM SPPG MUTIH KULON</h2>
+        <p>Alamat: Mutih Kulon, Kecamatan Wedung, Kabupaten Demak</p>
+    </div>
+
+    <div class="title">LEMBAR PENYERAHAN MAKANAN BERGIZI</div>
+
+    <table class="meta-table">
+        <tr>
+            <td class="td-label">Tanggal Pelaksanaan</td>
+            <td class="td-colon">:</td>
+            <td><?= printData.tanggal ?></td>
+        </tr>
+        <tr>
+            <td class="td-label">Sekolah Penerima</td>
+            <td class="td-colon">:</td>
+            <td><?= printData.sekolah ?></td>
+        </tr>
+    </table>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th width="30%">Menu Makanan Utama</th>
+                <th width="50%">Keterangan Gizi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong><?= printData.menu ?></strong><br><br>Buah: <?= printData.buah ?></td>
+                <td>
+                    - Karbohidrat: <?= printData.karbohidrat ?> g<br>
+                    - Protein: <?= printData.protein ?> g<br>
+                    - Lemak: <?= printData.lemak ?> g<br>
+                    - Kalori: <?= printData.kalori ?> Kcal<br>
+                    - Vitamin: <?= printData.vitamin ?>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div class="sign-box">
+            <div class="sign-date"></div>
+            <div class="sign-role">Ahli Gizi</div>
+            <div class="sign-name">
+                <span><?= printData.gizi ?></span>
+            </div>
+        </div>
+        <div class="sign-box">
+            <div class="sign-date"></div>
+            <div class="sign-role">KA SPPG</div>
+            <div class="sign-name">
+                <span><?= printData.sppg ?></span>
+            </div>
+        </div>
+        <div class="sign-box">
+            <div class="sign-date">Mutih Kulon, <?= printData.tercetak ?></div>
+            <div class="sign-role">Penerima Sekolah</div>
+            <div class="sign-name">
+                <span><?= printData.penerima ?></span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
